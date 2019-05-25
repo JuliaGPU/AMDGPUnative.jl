@@ -66,7 +66,11 @@ world_age() = ccall(:jl_get_tls_world_age, UInt, ())
 # slow lookup of local method age
 function method_age(f, tt)::UInt
     for m in Base._methods(f, tt, 1, typemax(UInt))
-        return m[3].min_world
+        @static if :min_world in fieldnames(Core.Method)
+            return m[3].min_world
+        else
+            return m[3].primary_world
+        end
     end
     throw(MethodError(f, tt))
 end
