@@ -3,6 +3,7 @@ const AS = AMDGPUnative.AS
 using LLVM, LLVM.Interop
 using HSARuntime
 using InteractiveUtils
+using SpecialFunctions
 using Test
 
 const DEBUG = get(ENV, "AMDGPUNATIVE_DEBUG", false) == "1"
@@ -65,6 +66,12 @@ if AMDGPUnative.configured
         end
 
         include("device/synchronization.jl")
+        if Base.libllvm_version >= v"7.0"
+            include("device/math.jl")
+        else
+            @warn "Testing with LLVM 6; some tests will be disabled!"
+            @warn "NOT running math intrinsic tests"
+        end
         #include("device/codegen.jl")
         #include("device/execution.jl")
         #include("device/pointer.jl")
