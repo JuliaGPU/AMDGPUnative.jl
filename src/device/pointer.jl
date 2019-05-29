@@ -135,6 +135,7 @@ tbaa_addrspace(as::Type{<:AddressSpace}) = tbaa_make_child(lowercase(String(as.n
     T_ptr = convert(LLVMType, Ptr{T})
 
     T_actual_ptr = LLVM.PointerType(eltyp, convert(Int, A))
+    #T_actual_ptr = LLVM.PointerType(eltyp)
 
     # create a function
     param_types = [T_ptr, T_int]
@@ -148,6 +149,7 @@ tbaa_addrspace(as::Type{<:AddressSpace}) = tbaa_make_child(lowercase(String(as.n
         ptr = inttoptr!(builder, parameters(llvm_f)[1], T_actual_ptr)
 
         ptr = gep!(builder, ptr, [parameters(llvm_f)[2]])
+        #ptr_with_as = addrspacecast!(builder, ptr, LLVM.PointerType(eltyp, convert(Int, A)))
         ld = load!(builder, ptr)
 
         if A != AS.Generic
@@ -169,6 +171,7 @@ end
     T_ptr = convert(LLVMType, Ptr{T})
 
     T_actual_ptr = LLVM.PointerType(eltyp, convert(Int, A))
+    #T_actual_ptr = LLVM.PointerType(eltyp)
 
     # create a function
     param_types = [T_ptr, eltyp, T_int]
@@ -182,6 +185,7 @@ end
         ptr = inttoptr!(builder, parameters(llvm_f)[1], T_actual_ptr)
 
         ptr = gep!(builder, ptr, [parameters(llvm_f)[3]])
+        #ptr_with_as = addrspacecast!(builder, ptr, LLVM.PointerType(eltyp, convert(Int, A)))
         val = parameters(llvm_f)[2]
         st = store!(builder, val, ptr)
 

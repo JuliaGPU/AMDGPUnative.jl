@@ -114,7 +114,7 @@ end
             io = open("/tmp/amdgpu-dump.o", "w")
             write(io, f.mod.data)
             close(io)
-            run(`$ld_path -shared -o /tmp/amdgpu.exe /tmp/amdgpu-dump.o`)
+            run(`$ld_path -shared -z notext -o /tmp/amdgpu.exe /tmp/amdgpu-dump.o`)
             io = open("/tmp/amdgpu.exe", "r")
             data = read(io)
             close(io)

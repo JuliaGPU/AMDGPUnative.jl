@@ -27,6 +27,7 @@ if AMDGPUnative.configured
             function vadd(a,b,c)
                 i = threadIdx().x
                 c[i] = a[i] + b[i]
+                @rocprintf("Hello!\n")
                 sync_workgroup()
                 return nothing
             end
