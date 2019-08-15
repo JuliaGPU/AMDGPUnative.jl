@@ -23,14 +23,15 @@
             d_a = HSAArray(a)
             len = prod(dims)
 
-            if DEBUG
+            @debug begin
                 aspace = AMDGPUnative.AS.Global
                 arrdims = ndims(a)
                 arrT = ROCDeviceArray{Float32,arrdims,aspace}
-                @info "LLVM IR"
+                @debug "LLVM IR"
                 AMDGPUnative.code_llvm($intr_kern, Tuple{arrT}; kernel=true)
-                @info "GCN Device Code"
+                @debug "GCN Device Code"
                 AMDGPUnative.code_gcn($intr_kern, Tuple{arrT}; kernel=true)
+                ""
             end
 
             @roc groupsize=len gridsize=len $intr_kern(d_a)
