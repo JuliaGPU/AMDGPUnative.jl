@@ -1,3 +1,4 @@
-runtime/
-bitcode/
 build.log
+deps.jl
+runtime/
+usr/

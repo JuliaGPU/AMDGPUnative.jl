@@ -9,7 +9,8 @@ using Libdl
 const configured = HSARuntime.configured
 
 # where the ROCm-Device-Libs bitcode goes
-const device_libs_path = joinpath(@__DIR__, "..", "deps", "bitcode")
+include(joinpath(@__DIR__, "..", "deps", "deps.jl"))
+const device_libs_path = joinpath(@__DIR__, "..", "deps", "usr", "lib")
 
 # needs to be loaded _before_ the compiler infrastructure, because of generated functions
 include(joinpath("device", "tools.jl"))
@@ -23,5 +24,9 @@ include("compiler.jl")
 include("execution.jl")
 
 include("reflection.jl")
+
+function __init__()
+    check_deps()
+end
 
 end # module

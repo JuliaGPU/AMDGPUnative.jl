@@ -2,7 +2,7 @@
     for intr in AMDGPUnative.MATH_INTRINSICS
         jlintr = intr.jlname
         if intr.isbroken || !(isdefined(Base, jlintr) || isdefined(SpecialFunctions, jlintr))
-            @info "NOT testing intrinsic $jlintr()"
+            @test_skip "$jlintr()"
             continue
         end
         modname = (isdefined(Base, jlintr) ? Base : SpecialFunctions)

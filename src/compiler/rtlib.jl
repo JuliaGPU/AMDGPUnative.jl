@@ -42,12 +42,14 @@ function load_device_libs(agent)
     bitcode_files = (
         "hc.amdgcn.bc",
         "hip.amdgcn.bc",
+        "irif.amdgcn.bc",
         "ockl.amdgcn.bc",
         "oclc_isa_version_803.amdgcn.bc", # FIXME: Load based on agent name!
         "opencl.amdgcn.bc",
-        "ocml.amdgcn.bc"
+        "ocml.amdgcn.bc",
     )
     for file in bitcode_files
+        ispath(joinpath(device_libs_path, file)) || continue
         name, ext = splitext(file)
         lib = get!(libcache, name) do
             file_path = joinpath(device_libs_path, file)
@@ -57,6 +59,7 @@ function load_device_libs(agent)
         end
         push!(device_libs, lib)
     end
+    @assert !isempty(device_libs) "No device libs detected!"
     return device_libs
 end
 
