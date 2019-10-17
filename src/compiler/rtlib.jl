@@ -1,6 +1,6 @@
 # compiler support for working with run-time libraries
 
-function link_library!(ctx::CompilerContext, mod::LLVM.Module, lib::LLVM.Module)
+function link_library!(job::CompilerJob, mod::LLVM.Module, lib::LLVM.Module)
     # linking is destructive, so copy the library
     lib = LLVM.Module(lib)
 
@@ -44,7 +44,7 @@ function load_device_libs(agent)
         "hip.amdgcn.bc",
         "irif.amdgcn.bc",
         "ockl.amdgcn.bc",
-        "oclc_isa_version_803.amdgcn.bc", # FIXME: Load based on agent name!
+        "oclc_isa_version_906.amdgcn.bc", # FIXME: Load based on agent name!
         "opencl.amdgcn.bc",
         "ocml.amdgcn.bc",
     )
@@ -63,15 +63,15 @@ function load_device_libs(agent)
     return device_libs
 end
 
-function link_device_lib!(ctx::CompilerContext, mod::LLVM.Module, lib::LLVM.Module)
+function link_device_libs!(job::CompilerJob, mod::LLVM.Module, lib::LLVM.Module)
     # override device lib's triple and datalayout to avoid warnings
     triple!(lib, triple(mod))
     datalayout!(lib, datalayout(mod))
 
-    link_library!(ctx, mod, lib)
+    link_library!(job, mod, lib)
 end
 
-function link_oclc_defaults!(ctx::CompilerContext, mod::LLVM.Module)
+function link_oclc_defaults!(job::CompilerJob, mod::LLVM.Module)
     # link in some defaults for OCLC knobs, to prevent undefined variable errors
     # TODO: only link if used
     # TODO: make these configurable
@@ -140,11 +140,9 @@ end
 
 function emit_function!(mod, agent, f, types, name)
     tt = Base.to_tuple_type(types)
-    ctx = CompilerContext(f, tt, agent, #= kernel =# false)
-    new_mod, entry = irgen(ctx)
-    entry = optimize!(ctx, new_mod, entry)
+    new_mod, entry = codegen(:llvm, CompilerJob(f, tt, agent, #=kernel=# false);
+                             libraries=false, strict=false)
     LLVM.name!(entry, name)
-
     link!(mod, new_mod)
 end
 

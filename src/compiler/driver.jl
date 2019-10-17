@@ -13,8 +13,15 @@ the compiled module and function, respectively of type `ROCModule` and
 For a list of supported keyword arguments, refer to the documentation of
 [`rocfunction`](@ref).
 """
-function compile(agent::HSAAgent, @nospecialize(f::Core.Function), @nospecialize(tt);
-                 kernel=true, kwargs...)
+function compile(target::Symbol agent::HSAAgent, @nospecialize(f::Core.Function),
+                 @nospecialize(tt), kernel::Bool=true; libraries::Bool=true,
+                 dynamic_parallelism::Bool=true, optimize::Bool=true,
+                 strip::Bool=false, strict::Bool=true, kwargs...) =
+            compile(target, CompilerJob(f, tt, cap, kernel; kwargs...);
+                    libraries=libraries, dynamic_parallelism=dynamic_parallelism,
+                    optimize=optimize, strip=strip, strict=strict)
+      
+
     AMDGPUnative.configured || error("AMDGPUnative.jl has not been configured; cannot JIT code.")
 
     ctx = CompilerContext(f, tt, agent, kernel; kwargs...)
