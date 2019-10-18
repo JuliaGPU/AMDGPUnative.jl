@@ -27,7 +27,7 @@ current_job = nothing
 
 
 function signature(job::CompilerJob)
-    fn = something(job.name, nameof(job.f)
+    fn = something(job.name, nameof(job.f))
     args = join(job.tt.parameters, ", ")
     return "$fn($(join(job.tt.parameters, ", ")))"
 end
@@ -82,6 +82,7 @@ function Base.showerror(io::IO, err::InternalCompilerError)
         for (pkg,ver) in Pkg.installed()
             println(io, " - $pkg = $(repr(ver))")
         end
+    end
 
     println(io)
     versioninfo(io)

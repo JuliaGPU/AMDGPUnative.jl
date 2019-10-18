@@ -7,8 +7,7 @@ function module_setup(mod::LLVM.Module)
         push!(metadata(mod), "llvm.module.flags",
              MDNode([ConstantInt(Int32(1), JuliaContext()),    # llvm::Module::Error
                      MDString("Debug Info Version"),
-                     ConstantInt(DEBUG_METADATA_VERSION(), JuliaContext())]))
-    end
+                     ConstantInt(DEBUG_METADATA_VERSION(), JuliaContext())]))    
 end
 
 # make function names safe for GCN -- maybe not necessary (ptx derived change)

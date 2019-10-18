@@ -1,6 +1,6 @@
 # compiler driver and main interface
 
-# (::CompilerContext)
+# (::CompilerJob)
 const compile_hook = Ref{Union{Nothing,Function}}(nothing)
 
 """
@@ -13,19 +13,19 @@ the compiled module and function, respectively of type `ROCModule` and
 For a list of supported keyword arguments, refer to the documentation of
 [`rocfunction`](@ref).
 """
-function compile(target::Symbol agent::HSAAgent, @nospecialize(f::Core.Function),
+compile(target::Symbol, agent::HSAAgent, @nospecialize(f::Core.Function),
                  @nospecialize(tt), kernel::Bool=true; libraries::Bool=true,
-                 dynamic_parallelism::Bool=true, optimize::Bool=true,
+                 optimize::Bool=true,
                  strip::Bool=false, strict::Bool=true, kwargs...) =
-            compile(target, CompilerJob(f, tt, cap, kernel; kwargs...);
-                    libraries=libraries, dynamic_parallelism=dynamic_parallelism,
+            compile(target, CompilerJob(f, tt, agent, kernel; kwargs...);
+                    libraries=libraries, 
                     optimize=optimize, strip=strip, strict=strict)
       
 
     AMDGPUnative.configured || error("AMDGPUnative.jl has not been configured; cannot JIT code.")
 
-    ctx = CompilerContext(f, tt, agent, kernel; kwargs...)
-    module_asm, module_entry = compile(ctx)
+    job = CompilerJob(f, tt, agent, kernel; kwargs...)
+    module_asm, module_entry = compile(job)
 
     # enable debug options based on Julia's debug setting
     jit_options = Dict{Any,Any}()
@@ -35,7 +35,7 @@ function compile(target::Symbol agent::HSAAgent, @nospecialize(f::Core.Function)
     return roc_mod, roc_fun
 end
 
-function compile(ctx::CompilerContext)
+function compile(job::CompilerJob)
     if compile_hook[] != nothing
         hook = compile_hook[]
         compile_hook[] = nothing
@@ -43,7 +43,7 @@ function compile(ctx::CompilerContext)
         global globalUnique
         previous_globalUnique = globalUnique
 
-        hook(ctx)
+        hook(job)
 
         globalUnique = previous_globalUnique
         compile_hook[] = hook
@@ -52,46 +52,46 @@ function compile(ctx::CompilerContext)
 
     ## high-level code generation (Julia AST)
 
-    @debug "(Re)compiling function" ctx
+    @debug "(Re)compiling function" job
 
-    check_method(ctx)
+    check_method(job)
 
 
     ## low-level code generation (LLVM IR)
 
-    mod, entry = irgen(ctx)
+    mod, entry = irgen(job)
 
     need_library(lib) = any(f -> isdeclaration(f) &&
                                  intrinsic_id(f) == 0 &&
                                  haskey(functions(lib), LLVM.name(f)),
                             functions(mod))
 
-    device_libs = load_device_libs(ctx.agent)
+    device_libs = load_device_libs(job.agent)
     for lib in device_libs
         if need_library(lib)
-            link_device_lib!(ctx, mod, lib)
+            link_device_lib!(job, mod, lib)
         end
     end
-    link_oclc_defaults!(ctx, mod)
+    link_oclc_defaults!(job, mod)
 
     # optimize the IR
-    entry = optimize!(ctx, mod, entry)
+    entry = optimize!(job, mod, entry)
 
-    runtime = load_runtime(ctx.agent)
+    runtime = load_runtime(job.agent)
     if need_library(runtime)
-        link_library!(ctx, mod, runtime)
+        link_library!(job, mod, runtime)
     end
 
-    prepare_execution!(ctx, mod)
+    prepare_execution!(job, mod)
 
-    check_invocation(ctx, entry)
+    check_invocation(job, entry)
 
     # check generated IR
-    check_ir(ctx, mod)
+    check_ir(job, mod)
     verify(mod)
 
     ## machine code generation (GCN assembly)
-    module_asm = mcgen(ctx, mod, entry)
+    module_asm = mcgen(job, mod, entry)
 
     return module_asm, LLVM.name(entry)
 end
