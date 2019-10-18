@@ -53,7 +53,10 @@ ROCDeviceVector{T,A}(len::Integer,               p::DevicePtr{T,A}) where {T,A} 
 ## getters
 
 Base.pointer(a::ROCDeviceArray) = a.ptr
+Base.pointer(a::ROCDeviceArray, i::Integer) =
+    pointer(a) + (i - 1) * Base.elsize(a)
 
+Base.elsize(::Type{<:CuDeviceArray{T}}) where {T} = sizeof(T)
 Base.size(g::ROCDeviceArray) = g.shape
 Base.length(g::ROCDeviceArray) = prod(g.shape)
 
