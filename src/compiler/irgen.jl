@@ -4,14 +4,6 @@ function module_setup(mod::LLVM.Module)
     triple!(mod, "amdgcn-amd-amdhsa")
 
     # add debug info metadata
-    if LLVM.version() >= v"8.0"
-    # Set Dwarf Version to 2, the DI printer will downgrade to v2 automatically,
-    # but this is technically correct and the only version supported by NVPTX
-    LLVM.flags(mod)["Dwarf Version", LLVM.API.LLVMModuleFlagBehaviorWarning] =
-        Metadata(ConstantInt(Int32(2), JuliaContext()))
-    LLVM.flags(mod)["Debug Info Version", LLVM.API.LLVMModuleFlagBehaviorError] =
-        Metadata(ConstantInt(DEBUG_METADATA_VERSION(), JuliaContext()))
-    else
         push!(metadata(mod), "llvm.module.flags",
              MDNode([ConstantInt(Int32(1), JuliaContext()),    # llvm::Module::Error
                      MDString("Debug Info Version"),
