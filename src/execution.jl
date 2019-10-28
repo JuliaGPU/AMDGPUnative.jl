@@ -76,14 +76,59 @@ function method_age(f, t)::UInt
     tt = Base.to_tuple_type(t)
     throw(MethodError(f, tt))
 end
+## high-level @cuda interface
 
+"""
+    @cuda [kwargs...] func(args...)
+
+High-level interface for executing code on a GPU. The `@cuda` macro should prefix a call,
+with `func` a callable function or object that should return nothing. It will be compiled to
+a CUDA function upon first use, and to a certain extent arguments will be converted and
+managed automatically using `cudaconvert`. Finally, a call to `CUDAdrv.cudacall` is
+performed, scheduling a kernel launch on the current CUDA context.
+
+Several keyword arguments are supported that influence the behavior of `@cuda`.
+- `dynamic`: use dynamic parallelism to launch device-side kernels
+- arguments that influence kernel compilation: see [`cufunction`](@ref) and
+  [`dynamic_cufunction`](@ref)
+- arguments that influence kernel launch: see [`CUDAnative.HostKernel`](@ref) and
+  [`CUDAnative.DeviceKernel`](@ref)
+
+The underlying operations (argument conversion, kernel compilation, kernel call) can be
+performed explicitly when more control is needed, e.g. to reflect on the resource usage of a
+kernel to determine the launch configuration. A host-side kernel launch is done as follows:
+
+    args = ...
+    GC.@preserve args begin
+        kernel_args = cudaconvert.(args)
+        kernel_tt = Tuple{Core.Typeof.(kernel_args)...}
+        kernel = cufunction(f, kernel_tt; compilation_kwargs)
+        kernel(kernel_args...; launch_kwargs)
+    end
+
+A device-side launch, aka. dynamic parallelism, is similar but more restricted:
+
+    args = ...
+    # GC.@preserve is not supported
+    # we're on the device already, so no need to cudaconvert
+    kernel_tt = Tuple{Core.Typeof(args[1]), ...}    # this needs to be fully inferred!
+    kernel = dynamic_cufunction(f, kernel_tt)       # no compiler kwargs supported
+    kernel(args...; launch_kwargs)
+"""
 macro roc(ex...)
-    @assert length(ex) >= 1 "Not enough arguments provided"
-    call = last(ex)
+    if length(ex) > 0 && ex[1].head == :tuple
+        error("The tuple argument to @roc has been replaced by keywords: `@roc threads=... fun(args...)`")
+    end
+    call = ex[end]
     kwargs = ex[1:end-1]
-    @assert call.head == :call "Invalid kernel specification"
+    
+    # destructure the kernel call
+    if call.head != :call
+        throw(ArgumentError("second argument to @cuda should be a function call"))
+    end
     f = call.args[1]
     args = call.args[2:end]
+    
     code = quote end
     compiler_kwargs, call_kwargs = split_kwargs(kwargs)
     vars, var_exprs = assign_args!(code, args)

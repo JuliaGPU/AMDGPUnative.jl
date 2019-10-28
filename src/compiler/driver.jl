@@ -188,7 +188,7 @@ function codegen(target::Symbol, job::CompilerJob;
         if libraries
             # linking the device runtime library requires use of the CUDA linker,
             # which in turn switches compilation to device relocatable code (-rdc) mode.
-            #
+            # FIXME for ROCM
             # even if not doing any actual calls that need -rdc (i.e., calls to the runtime
             # library), this significantly hurts performance, so don't do it unconditionally
             undefined_fns = LLVM.name.(decls(ir))
