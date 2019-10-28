@@ -4,19 +4,19 @@
 # Address spaces
 #
 
+export AS, addrspace
+
 abstract type AddressSpace end
 
 module AS
 
-using AMDGPUnative
-import AMDGPUnative: AddressSpace
-# address space types differ from CUDAnative
+import ..AddressSpace
+
 struct Generic  <: AddressSpace end
 struct Global   <: AddressSpace end
-struct Region   <: AddressSpace end
-struct Local    <: AddressSpace end
+struct Shared   <: AddressSpace end
 struct Constant <: AddressSpace end
-struct Private  <: AddressSpace end
+struct Local    <: AddressSpace end
 
 end
 
@@ -25,30 +25,32 @@ end
 # Device pointer
 #
 
-struct DevicePtr{T,A}
-    ptr::Ptr{T}
+"""
+    DevicePtr{T,A}
+"""
+DevicePtr
 
-    # inner constructors, fully parameterized
-    DevicePtr{T,A}(ptr::Ptr{T}) where {T,A<:AddressSpace} = new(ptr)
+if sizeof(Ptr{Cvoid}) == 8
+    primitive type DevicePtr{T,A} <: Ref{T} 64 end
+else
+    primitive type DevicePtr{T,A} <: Ref{T} 32 end
 end
 
-# outer constructors, partially parameterized
+# constructors
+DevicePtr{T,A}(x::Union{Int,UInt,Ptr,DevicePtr}) where {T,A<:AddressSpace} = Base.bitcast(DevicePtr{T,A}, x)
 DevicePtr{T}(ptr::Ptr{T}) where {T} = DevicePtr{T,AS.Generic}(ptr)
 DevicePtr(ptr::Ptr{T}) where {T} = DevicePtr{T,AS.Generic}(ptr)
 
-Base.show(io::IO, dp::DevicePtr{T,AS}) where {T,AS} =
-    print(io, AS.name.name, " Device", pointer(dp))
 
 ## getters
 
-Base.pointer(p::DevicePtr) = p.ptr
 Base.eltype(::Type{<:DevicePtr{T}}) where {T} = T
 
 addrspace(x::DevicePtr) = addrspace(typeof(x))
 addrspace(::Type{DevicePtr{T,A}}) where {T,A} = A
 
-## conversions -- Being conservative with this because AMDGPU doesn't have
-# the equivalent to CuPtr implemented -WSP
+## conversions
+
 # to and from integers
 ## pointer to integer
 Base.convert(::Type{T}, x::DevicePtr) where {T<:Integer} = T(UInt(x))
@@ -57,15 +59,14 @@ Base.convert(::Type{DevicePtr{T,A}}, x::Union{Int,UInt}) where {T,A<:AddressSpac
 Int(x::DevicePtr)  = Base.bitcast(Int, x)
 UInt(x::DevicePtr) = Base.bitcast(UInt, x)
 
-# between regular and device pointers
-## simple conversions disallowed
-Base.convert(::Type{Ptr{T}}, p::DevicePtr{T})        where {T} = throw(InexactError(:convert, Ptr{T}, p))
-Base.convert(::Type{<:DevicePtr{T}}, p::Ptr{T})      where {T} = throw(InexactError(:convert, DevicePtr{T}, p))
-## unsafe ones are allowed
-Base.unsafe_convert(::Type{Ptr{T}}, x::DevicePtr{T}) where {T} = reinterpret(Ptr{T}, x)
 
-# defer conversions to DevicePtr to unsafe_convert
-Base.cconvert(::Type{<:DevicePtr}, x) = x
+# between host and device pointers
+Base.convert(::Type{Ptr{T}},  p::DevicePtr)  where {T}                 = Base.bitcast(Ptr{T}, p)
+Base.convert(::Type{DevicePtr{T,A}}, p::Ptr) where {T,A<:AddressSpace} = Base.bitcast(DevicePtr{T,A}, p)
+Base.convert(::Type{DevicePtr{T}}, p::Ptr)   where {T}                 = Base.bitcast(DevicePtr{T,AS.Generic}, p)
+
+# between CPU pointers, for the purpose of working with `ccall`
+Base.unsafe_convert(::Type{Ptr{T}}, x::DevicePtr{T}) where {T} = reinterpret(Ptr{T}, x)
 
 # between device pointers
 Base.convert(::Type{<:DevicePtr}, p::DevicePtr)                         = throw(ArgumentError("cannot convert between incompatible device pointer types"))
@@ -95,24 +96,13 @@ Base.:(-)(x::DevicePtr, y::Integer) = oftype(x, Base.sub_ptr(UInt(x), (y % UInt)
 Base.:(+)(x::Integer, y::DevicePtr) = y + x
 
 ## memory operations
-# Disparities here from CUDAnative implementation -- not sure what's correct -WSP
-@static if Base.libllvm_version < v"7.0"
-    # Old values (LLVM 6)
-    Base.convert(::Type{Int}, ::Type{AS.Private})  = 0
-    Base.convert(::Type{Int}, ::Type{AS.Global})   = 1
-    Base.convert(::Type{Int}, ::Type{AS.Constant}) = 2
-    Base.convert(::Type{Int}, ::Type{AS.Local})    = 3
-    Base.convert(::Type{Int}, ::Type{AS.Generic})  = 4
-    Base.convert(::Type{Int}, ::Type{AS.Region})   = 5
-else
-    # New values (LLVM 7+)
-    Base.convert(::Type{Int}, ::Type{AS.Generic})  = 0
-    Base.convert(::Type{Int}, ::Type{AS.Global})   = 1
-    Base.convert(::Type{Int}, ::Type{AS.Region})   = 2
-    Base.convert(::Type{Int}, ::Type{AS.Local})    = 3
-    Base.convert(::Type{Int}, ::Type{AS.Constant}) = 4
-    Base.convert(::Type{Int}, ::Type{AS.Private})  = 5
-end
+
+Base.convert(::Type{Int}, ::Type{AS.Generic})  = 0
+Base.convert(::Type{Int}, ::Type{AS.Global})   = 1
+Base.convert(::Type{Int}, ::Type{AS.Shared})   = 3
+Base.convert(::Type{Int}, ::Type{AS.Constant}) = 4
+Base.convert(::Type{Int}, ::Type{AS.Local})    = 5
+
 
 function tbaa_make_child(name::String, constant::Bool=false; ctx::LLVM.Context=JuliaContext())
     tbaa_root = MDNode([MDString("roctbaa", ctx)], ctx)
