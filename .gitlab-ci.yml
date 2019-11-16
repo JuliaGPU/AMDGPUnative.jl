@@ -29,6 +29,14 @@ test:v1.2:
   tags:
       - rocm
 
+test:v1.2-llvm7:
+  extends: .test
+  variables:
+      CI_IMAGE_TAG: 'rocm'
+      CI_VERSION_TAG: 'v1.2-llvm7'
+  tags:
+      - rocm
+
 test:v1.3:
   extends: .test
   variables:
