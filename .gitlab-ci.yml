@@ -3,16 +3,7 @@ stages:
     - post
 
 include:
-    - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/3fbe3d2dd7288b4c91e8b7b2fbbd98b9bdeeb92a/templates/v3/common.yml'
-
-test:dev:
-  extends: .test
-  variables:
-      CI_IMAGE_TAG: 'rocm'
-      CI_VERSION_TAG: 'dev'
-  tags:
-      - rocm
-  allow_failure: true
+    - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v5/test.yml'
 
 test:v1.0:
   extends: .test
@@ -29,3 +20,28 @@ test:v1.1:
       CI_VERSION_TAG: 'v1.1'
   tags:
       - rocm
+
+test:v1.2:
+  extends: .test
+  variables:
+      CI_IMAGE_TAG: 'rocm'
+      CI_VERSION_TAG: 'v1.2'
+  tags:
+      - rocm
+
+test:v1.3:
+  extends: .test
+  variables:
+      CI_IMAGE_TAG: 'rocm'
+      CI_VERSION_TAG: 'v1.3'
+  tags:
+      - rocm
+
+test:dev:
+  extends: .test
+  variables:
+      CI_IMAGE_TAG: 'rocm'
+      CI_VERSION_TAG: 'dev'
+  tags:
+      - rocm
+  allow_failure: true
