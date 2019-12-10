@@ -1,6 +1,8 @@
 include:
   - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v6.yml'
 
+image: rocm/dev-ubuntu-18.04
+
 # basic tests (LLVM 6)
 
 test:1.0:
