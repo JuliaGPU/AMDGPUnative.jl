@@ -1,55 +1,55 @@
-stages:
-    - test
-    - post
-
 include:
-    - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v5/test.yml'
+  - 'https://raw.githubusercontent.com/JuliaGPU/gitlab-ci/master/templates/v6.yml'
 
-test:v1.0:
-  extends: .test
-  variables:
-      CI_IMAGE_TAG: 'rocm'
-      CI_VERSION_TAG: 'v1.0'
-  tags:
-      - rocm
+# basic tests (LLVM 6)
 
-test:v1.1:
-  extends: .test
-  variables:
-      CI_IMAGE_TAG: 'rocm'
-      CI_VERSION_TAG: 'v1.1'
-  tags:
-      - rocm
+test:1.0:
+  extends:
+    - .julia:1.0
+    - .test
 
-test:v1.2:
-  extends: .test
-  variables:
-      CI_IMAGE_TAG: 'rocm'
-      CI_VERSION_TAG: 'v1.2'
-  tags:
-      - rocm
+test:1.1:
+  extends:
+    - .julia:1.1
+    - .test
 
-test:v1.2-llvm7:
-  extends: .test
-  variables:
-      CI_IMAGE_TAG: 'rocm'
-      CI_VERSION_TAG: 'v1.2-llvm7'
-  tags:
-      - rocm
+test:1.2:
+  extends:
+    - .julia:1.2
+    - .test
 
-test:v1.3:
-  extends: .test
-  variables:
-      CI_IMAGE_TAG: 'rocm'
-      CI_VERSION_TAG: 'v1.3'
-  tags:
-      - rocm
+test:1.3:
+  extends:
+    - .julia:1.3
+    - .test
 
-test:dev:
-  extends: .test
-  variables:
-      CI_IMAGE_TAG: 'rocm'
-      CI_VERSION_TAG: 'dev'
-  tags:
-      - rocm
+test:nightly:
+  extends:
+    - .julia:nightly
+    - .test
   allow_failure: true
+
+
+# special tests
+
+test:source:llvm7:
+  extends:
+    - .julia:source
+    - .test
+  variables:
+    CI_BUILD_ARGS: 'LLVM_VER=7.0.0 USE_BINARYBUILDER_LLVM=0'
+
+test:source:llvm8:
+  extends:
+    - .julia:source
+    - .test
+  variables:
+    CI_BUILD_ARGS: 'LLVM_VER=8.0.0 USE_BINARYBUILDER_LLVM=0'
+
+test:source:llvm9:
+  extends:
+    - .julia:source
+    - .test
+  variables:
+    CI_BUILD_ARGS: 'LLVM_VER=9.0.0rc6 USE_BINARYBUILDER_LLVM=0'
+
