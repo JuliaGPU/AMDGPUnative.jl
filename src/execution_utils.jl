@@ -50,20 +50,32 @@ function Base.getindex(dims::ROCDim3, idx::Int)
            error("Invalid dimension: $idx")
 end
 
+function link_kernel(func::ROCFunction)
+    # link with ld.lld
+    ld_path = HSARuntime.ld_lld_path
+    @assert ld_path != "" "ld.lld was not found; cannot link kernel"
+    mktemp() do objpath, objio
+        write(objio, func.mod.data)
+        flush(objio)
+        run(`$ld_path -shared -o $(objpath*".exe") $objpath`)
+        data = read(objpath*".exe")
+    end
+end
+
 """
-    launch(queue::RuntimeQueue, signal::RuntimeEvent, f::ROCFunction,
+    launch(queue::RuntimeQueue, f::ROCFunction,
            groupsize::ROCDim, gridsize::ROCDim, args...)
 
 Low-level call to launch a ROC function `f` on the GPU, using `groupsize` and
 `gridsize` as the grid and block configuration, respectively. The kernel is
-launched on `queue` and is waited on by `signal`.
+launched on `queue` and returns a `RuntimeEvent`.
 
 Arguments to a kernel should either be bitstype, in which case they will be
 copied to the internal kernel parameter buffer, or a pointer to device memory.
 
 This is a low-level call, preferably use [`roccall`](@ref) instead.
 """
-@inline function launch(queue::RuntimeQueue, signal::RuntimeEvent, f::ROCFunction,
+@inline function launch(queue::RuntimeQueue, f::ROCFunction,
                         groupsize::ROCDim, gridsize::ROCDim, args...)
     groupsize = ROCDim3(groupsize)
     gridsize = ROCDim3(gridsize)
@@ -72,12 +84,12 @@ This is a low-level call, preferably use [`roccall`](@ref) instead.
     (gridsize.x>0 && gridsize.y>0 && gridsize.z>0) ||
         throw(ArgumentError("Grid dimensions should be non-null"))
 
-    _launch(queue, signal, f, groupsize, gridsize, args...)
+    _launch(queue, f, groupsize, gridsize, args...)
 end
 
 # we need a generated function to get an args array,
 # without having to inspect the types at runtime
-@generated function _launch(queue::RuntimeQueue, signal::RuntimeEvent, f::ROCFunction,
+@generated function _launch(queue::RuntimeQueue, f::ROCFunction,
                             groupsize::ROCDim3, gridsize::ROCDim3,
                             args::NTuple{N,Any}) where N
 
@@ -106,8 +118,7 @@ end
             kern = create_kernel(get_device(queue), exe, f.entry, args)
 
             # launch kernel
-            launch_kernel(queue, kern, signal;
-                          groupsize=groupsize, gridsize=gridsize)
+            launch_kernel(queue, kern; groupsize=groupsize, gridsize=gridsize)
         end
     end).args)
 
@@ -115,7 +126,7 @@ end
 end
 
 """
-    roccall(queue::RuntimeQueue, signal::RuntimeEvent, f::ROCFunction, types, values...;
+    roccall(queue::RuntimeQueue, f::ROCFunction, types, values...;
              groupsize::ROCDim, gridsize::ROCDim)
 
 `ccall`-like interface for launching a ROC function `f` on a GPU.
@@ -141,24 +152,26 @@ being slightly faster.
 """
 roccall
 
-@inline function roccall(queue::RuntimeQueue, signal::RuntimeEvent, f::ROCFunction, types::NTuple{N,DataType}, values::Vararg{Any,N};
-                          kwargs...) where N
+@inline function roccall(queue::RuntimeQueue, f::ROCFunction,
+                         types::NTuple{N,DataType}, values::Vararg{Any,N};
+                         kwargs...) where N
     # this cannot be inferred properly (because types only contains `DataType`s),
     # which results in the call `@generated _roccall` getting expanded upon first use
-    _roccall(queue, signal, f, Tuple{types...}, values; kwargs...)
+    _roccall(queue, f, Tuple{types...}, values; kwargs...)
 end
 
-@inline function roccall(queue::RuntimeQueue, signal::RuntimeEvent, f::ROCFunction, tt::Type, values::Vararg{Any,N};
-                          kwargs...) where N
+@inline function roccall(queue::RuntimeQueue, f::ROCFunction, tt::Type,
+                         values::Vararg{Any,N}; kwargs...) where N
     # in this case, the type of `tt` is `Tuple{<:DataType,...}`,
     # which means the generated function can be expanded earlier
-    _roccall(queue, signal, f, tt, values; kwargs...)
+    _roccall(queue, f, tt, values; kwargs...)
 end
 
 # we need a generated function to get a tuple of converted arguments (using unsafe_convert),
 # without having to inspect the types at runtime
-@generated function _roccall(queue::RuntimeQueue, signal::RuntimeEvent, f::ROCFunction, tt::Type, args::NTuple{N,Any};
-                              groupsize::ROCDim=1, gridsize::ROCDim=1) where N
+@generated function _roccall(queue::RuntimeQueue, f::ROCFunction, tt::Type,
+                             args::NTuple{N,Any};
+                             groupsize::ROCDim=1, gridsize::ROCDim=1) where N
 
     # the type of `tt` is Type{Tuple{<:DataType...}}
     types = tt.parameters[1].parameters
@@ -179,7 +192,7 @@ end
 
     append!(ex.args, (quote
         GC.@preserve $(converted_args...) begin
-            launch(queue, signal, f, groupsize, gridsize, ($(arg_ptrs...),))
+            launch(queue, f, groupsize, gridsize, ($(arg_ptrs...),))
         end
     end).args)
 

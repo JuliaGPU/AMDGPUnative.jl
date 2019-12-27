@@ -18,8 +18,7 @@ default_isa(device::RuntimeDevice{HSAAgent}) =
 struct RuntimeEvent{E}
     event::E
 end
-create_event() = RuntimeEvent(create_event(RUNTIME[]))
-create_event(::typeof(HSA)) = HSASignal()
+#create_event(device::RuntimeDevice{HSAAgent}) = RuntimeEvent(HSASignal())
 Base.wait(event::RuntimeEvent) = wait(event.event)
 
 struct RuntimeExecutable{E}
@@ -28,31 +27,25 @@ end
 create_executable(device, func) =
     RuntimeExecutable(create_executable(RUNTIME[], device, func))
 function create_executable(::typeof(HSA), device, func)
-    # link with ld.lld
-    ld_path = HSARuntime.ld_lld_path
-    @assert ld_path != "" "ld.lld was not found; cannot link kernel"
-    # TODO: Do this more idiomatically
-    io = open("/tmp/amdgpu-dump.o", "w")
-    write(io, func.mod.data)
-    close(io)
-    run(`$ld_path -shared -o /tmp/amdgpu.exe /tmp/amdgpu-dump.o`)
-    io = open("/tmp/amdgpu.exe", "r")
-    data = read(io)
-    close(io)
+    data = link_kernel(func)
 
     return HSAExecutable(device.device, data, func.entry)
 end
 
-struct RuntimeKernel{K}
+struct RuntimeKernel{K,A}
     kernel::K
+    args::A
 end
 create_kernel(device, exe, entry, args) =
-    RuntimeKernel(create_kernel(RUNTIME[], device, exe, entry, args))
+    RuntimeKernel(create_kernel(RUNTIME[], device, exe, entry, args), args)
 create_kernel(::typeof(HSA), device, exe, entry, args) =
     HSAKernelInstance(device.device, exe.exe, entry, args)
-launch_kernel(queue, kern, event; kwargs...) =
-    launch_kernel(RUNTIME[], queue, kern, event; kwargs...)
-launch_kernel(::typeof(HSA), queue, kern, event;
-              groupsize=nothing, gridsize=nothing) =
-    HSARuntime.launch!(queue.queue, kern.kernel, event.event;
+launch_kernel(queue, kern; kwargs...) =
+    launch_kernel(RUNTIME[], queue, kern; kwargs...)
+function launch_kernel(::typeof(HSA), queue, kern;
+                       groupsize=nothing, gridsize=nothing)
+    signal = HSASignal()
+    HSARuntime.launch!(queue.queue, kern.kernel, signal;
                        workgroup_size=groupsize, grid_size=gridsize)
+    return RuntimeEvent(signal)
+end

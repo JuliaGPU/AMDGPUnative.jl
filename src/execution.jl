@@ -147,9 +147,8 @@ macro roc(ex...)
                 local kernel = rocfunction(device, $(esc(f)), kernel_tt;
                                            $(map(esc, compiler_kwargs)...))
                 local queue = extract_queue(device; $(map(esc, call_kwargs)...))
-                local signal = create_event()
-                kernel(queue, signal, kernel_args...; $(map(esc, call_kwargs)...))
-                wait(signal)
+                local event = kernel(queue, kernel_args...; $(map(esc, call_kwargs)...))
+                wait(event)
             end
         end)
     return code
@@ -248,7 +247,7 @@ rocfunction(f::Core.Function, tt::Type=Tuple{}; kwargs...) =
     rocfunction(default_device(), f, tt; kwargs...)
 
 @generated function call(kernel::Kernel{F,TT}, queue::RuntimeQueue,
-                         signal::RuntimeEvent, args...; call_kwargs...) where {F,TT}
+                         args...; call_kwargs...) where {F,TT}
 
     sig = Base.signature_type(F, TT)
     args = (:F, (:( args[$i] ) for i in 1:length(args))...)
@@ -272,7 +271,7 @@ rocfunction(f::Core.Function, tt::Type=Tuple{}; kwargs...) =
 
     quote
         Base.@_inline_meta
-        roccall(queue, signal, kernel.fun, $call_tt, $(call_args...); call_kwargs...)
+        roccall(queue, kernel.fun, $call_tt, $(call_args...); call_kwargs...)
     end
 end
 
