@@ -82,4 +82,6 @@ else
     @warn("AMDGPUnative.jl has not been configured; skipping on-device tests.")
 end
 
+include("opencl.jl")
+
 end
