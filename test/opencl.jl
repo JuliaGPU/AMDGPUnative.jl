@@ -10,8 +10,6 @@ if cl.api.libopencl != "" && length(cl.devices()) > 0
 function mysum(X,Y,Z)
     idx = AMDGPUnative.workitemIdx_x()
     Z[idx] = X[idx] + Y[idx]
-    Z[2] = X[idx]
-    X[3] = Y[idx]
     nothing
 end
 
