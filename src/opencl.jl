@@ -4,6 +4,7 @@ using OpenCL
 
 include("opencl/args.jl")
 include("opencl/buffer.jl")
+include("opencl/deviceptr.jl")
 
 const OCL_DEFAULT_DEVICE = Ref{cl.Device}()
 const OCL_DEFAULT_CONTEXT = IdDict{cl.Device,cl.Context}()
@@ -45,6 +46,7 @@ default_isa(device::RuntimeDevice{cl.Device}) =
 
 #create_event(device::RuntimeDevice{cl.Device}) =
 #    RuntimeEvent(cl.UserEvent(device.device))
+Base.wait(event::RuntimeEvent{cl.Event}) = cl.wait(event.event)
 
 function create_executable(::typeof(OCL), device, func)
     data = link_kernel(func)
@@ -85,15 +87,15 @@ function clconvert(q, x::ROCDeviceArray{T,N,A}) where {T,N,A}
     end
     return buf
     =#
-    return FakeDeviceArray(prod(x.shape), Int64(x.ptr))
+    #return FakeDeviceArray(prod(x.shape), Int64(x.ptr))
+    return x
 end
 function launch_kernel(::typeof(HSA), queue, kern;
                        groupsize=nothing, gridsize=nothing)
     q = queue.queue
     k = kern.kernel
     args = map(arg->clconvert(q, arg), kern.args)
-    @show typeof.(args)
     cl.set_args!(k, args...)
-    event = cl.enqueue_kernel(q, k, 1, nothing) #=gridsize, groupsize,=#
+    event = cl.enqueue_kernel(q, k, 1, 1) #=gridsize, groupsize,=#
     return RuntimeEvent(event)
 end

@@ -29,6 +29,7 @@ include(joinpath("device", "pointer.jl"))
 include(joinpath("device", "array.jl"))
 include(joinpath("device", "gcn.jl"))
 include(joinpath("device", "runtime.jl"))
+include(joinpath("device", "llvm.jl"))
 
 include("execution_utils.jl")
 include("compiler.jl")
