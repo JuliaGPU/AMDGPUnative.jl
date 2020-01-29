@@ -137,20 +137,22 @@ macro roc(ex...)
     code = quote end
     compiler_kwargs, call_kwargs = split_kwargs(kwargs)
     vars, var_exprs = assign_args!(code, args)
-    
-    @gensym kernel_args kernel_tt agen kernel queue signal
+
+    @gensym kernel_args kernel_tt agent kernel queue signal
+    @show vars
+    @show var_exprs
 
     push!(code.args,
         quote
             GC.@preserve $(vars...) begin
                 local $kernel_args = map(rocconvert, ($(var_exprs...),))
-		local $kernel_tt = Tuple{$((:(Core.Typeof.($arg)) for arg in kernel_args)...)}
+                local $kernel_tt = Tuple{Core.Typeof.($kernel_args)...}
                 local $agent = get_default_agent()
-                local $kernel = rocfunction($agent, $kernel_tt;
+                local $kernel = rocfunction($agent, $f, $kernel_tt;
                                            $(compiler_kwargs...))
                 local $queue = get_default_queue($agent)
                 local $signal = HSASignal()
-		$kernel($queue, $signal, $(kernel_args...); $(call_kwargs...))
+                $kernel($queue, $signal, $kernel_args...; $(call_kwargs...))
                 wait($signal)
             end
         end)
