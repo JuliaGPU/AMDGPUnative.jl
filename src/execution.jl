@@ -139,21 +139,17 @@ macro roc(ex...)
     vars, var_exprs = assign_args!(code, args)
 
     @gensym kernel_args kernel_tt device kernel queue signal
-    @show vars
-    @show var_exprs
-    @show compiler_kwargs
-    @show call_kwargs
 
     push!(code.args,
         quote
             GC.@preserve $(vars...) begin
                 local $kernel_args = map(rocconvert, ($(var_exprs...),))
                 local $kernel_tt = Tuple{Core.Typeof.($kernel_args)...}
-                local $device = AMDGPUnative.extract_device(; $(call_kwargs...))
+                local $device = $extract_device(; $(call_kwargs...))
                 local $kernel = rocfunction($device, $f, $kernel_tt;
                                            $(compiler_kwargs...))
-                local $queue = AMDGPUnative.extract_queue($device; $(call_kwargs...))
-                local $signal = AMDGPUnative.create_event()
+                local $queue = $extract_queue($device; $(call_kwargs...))
+                local $signal = $create_event()
                 $kernel($queue, $signal, $kernel_args...; $(call_kwargs...))
                 wait($signal)
             end
