@@ -337,6 +337,7 @@ function emit_exception!(builder, name, inst)
     fun = LLVM.parent(bb)
     mod = LLVM.parent(fun)
 
+    #= FIXME
     # report the exception
     if Base.JLOptions().debug_level >= 1
         name = globalstring_ptr!(builder, name, "exception")
@@ -362,6 +363,7 @@ function emit_exception!(builder, name, inst)
 
     # signal the exception
     call!(builder, Runtime.get(:signal_exception))
+    =#
 
     trap = if haskey(functions(mod), "llvm.trap")
         functions(mod)["llvm.trap"]
