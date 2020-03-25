@@ -28,6 +28,7 @@ struct Adaptor end
 
 # Device sources must load _before_ the compiler infrastructure
 # because of generated functions.
+isdevice() = false
 include(joinpath("device", "tools.jl"))
 include(joinpath("device", "pointer.jl"))
 include(joinpath("device", "array.jl"))
@@ -36,6 +37,7 @@ include(joinpath("device", "runtime.jl"))
 
 include("execution_utils.jl")
 include("compiler.jl")
+include("context.jl")
 include("execution.jl")
 include("reflection.jl")
 

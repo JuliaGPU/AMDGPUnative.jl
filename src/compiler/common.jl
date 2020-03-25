@@ -7,6 +7,8 @@ struct CompilerJob
     device::RuntimeDevice
     kernel::Bool
 
+    contextualize::Bool
+
     # optional properties
     minthreads::Union{Nothing,ROCDim}
     maxthreads::Union{Nothing,ROCDim}
@@ -16,8 +18,10 @@ struct CompilerJob
 
     CompilerJob(f, tt, device, kernel; name=nothing,
                 minthreads=nothing, maxthreads=nothing,
-                blocks_per_sm=nothing, maxregs=nothing) =
-        new(f, tt, device, kernel, minthreads, maxthreads, blocks_per_sm,
+                blocks_per_sm=nothing, maxregs=nothing,
+                contextualize=true) =
+        new(f, tt, device, kernel, contextualize,
+            minthreads, maxthreads, blocks_per_sm,
             maxregs, name)
 end
 

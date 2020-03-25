@@ -51,11 +51,12 @@ function codegen(target::Symbol, job::CompilerJob; libraries::Bool=true,
     @timeit to[] "validation" check_method(job)
 
     @timeit to[] "Julia front-end" begin
+        f = job.contextualize ? contextualize(job.f) : job.f
 
         # get the method instance
         world = typemax(UInt)
-        meth = which(job.f, job.tt)
-        sig = Base.signature_type(job.f, job.tt)::Type
+        meth = which(f, job.tt)
+        sig = Base.signature_type(f, job.tt)::Type
         (ti, env) = ccall(:jl_type_intersection_with_env, Any,
                           (Any, Any), sig, meth.sig)::Core.SimpleVector
         if VERSION >= v"1.2.0-DEV.320"

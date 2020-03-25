@@ -12,7 +12,7 @@ end
 # affecting the compiler, kernel execution, or both.
 function split_kwargs(kwargs)
     # TODO: Alias groupsize and gridsize as threads and blocks, respectively
-    compiler_kws = [:device, :agent, :queue, :name]
+    compiler_kws = [:device, :agent, :queue, :name, :contextualize]
     call_kws     = [:groupsize, :gridsize, :device, :agent, :queue]
     compiler_kwargs = []
     call_kwargs = []
@@ -199,7 +199,8 @@ Low-level interface to compile a function invocation for the currently-active
 GPU, returning a callable kernel object. For a higher-level interface, use
 [`@roc`](@ref).
 
-Currently, no keyword arguments are implemented.
+The following keyword arguments are supported:
+- `contextualize`: whether to contextualize functions using Cassette (default: true)
 
 The output of this function is automatically cached, i.e. you can simply call
 `rocfunction` in a hot path without degrading performance. New code will be
