@@ -1,5 +1,6 @@
-import HSARuntime: HSASignal, hsa_signal_t, hsa_signal_load_scacquire, hsa_signal_store_release
-#import hsa_signal_wait_scacquire, HSA_SIGNAL_CONDITION_GTE, HSA_WAIT_STATE_BLOCKED
+import HSARuntime: HSASignal
+# HSA.Signal, HSA.signal_load_scacquire, HSA.signal_store_release
+#import HSA.signal_wait_scacquire, HSA.SIGNAL_CONDITION_GTE, HSA.WAIT_STATE_BLOCKED
 
 export HostCall, hostcall!
 
@@ -219,7 +220,7 @@ function HostCall(func, rettype, argtypes; return_task=false,
                     ret_buf_ptr = Base.unsafe_convert(Ptr{UInt64}, ret_buf)
                     args_buf_ptr = convert(Ptr{UInt64}, hc.buf_ptr)
                     Base.unsafe_store!(args_buf_ptr, ret_buf_ptr)
-                    hsa_signal_store_release(signal.signal[], hc.host_sentinel)
+                    HSA.signal_store_release(signal.signal[], hc.host_sentinel)
                 catch err
                     throw(HostCallException("Hostcall: Error returning hostcall result"))
                 end
@@ -248,12 +249,13 @@ function HostCall(func, rettype, argtypes; return_task=false,
 end
 
 # CPU functions
+# FIXME? signal_load_acquire vs signal_load_scacquire ln 254
 get_value(hc::HostCall{UInt64,RT,AT} where {RT,AT}) =
-    hsa_signal_load_acquire(hsa_signal_t(hc.signal))
+    HSA.signal_load_acquire(HSA.Signal(hc.signal))
 function _hostwait(signal, sentinel; maxlat=0.01)
     @debug "Waiting on hostcall signal for sentinel: $sentinel"
     while true
-        value = hsa_signal_load_scacquire(signal)
+        value = HSA.signal_load_scacquire(signal)
         if value == sentinel
             @debug "Hostcall signal triggered with sentinel: $sentinel"
             return
