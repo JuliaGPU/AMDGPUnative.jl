@@ -1,7 +1,4 @@
 import HSARuntime: HSASignal
-# HSA.Signal, HSA.signal_load_scacquire, HSA.signal_store_release
-#import HSA.signal_wait_scacquire, HSA.SIGNAL_CONDITION_GTE, HSA.WAIT_STATE_BLOCKED
-
 export HostCall, hostcall!
 
 const SENTINEL_COUNTER = Ref{Int}(2)
@@ -249,9 +246,8 @@ function HostCall(func, rettype, argtypes; return_task=false,
 end
 
 # CPU functions
-# FIXME? signal_load_acquire vs signal_load_scacquire ln 254
 get_value(hc::HostCall{UInt64,RT,AT} where {RT,AT}) =
-    HSA.signal_load_acquire(HSA.Signal(hc.signal))
+    HSA.signal_load_scacquire(HSA.Signal(hc.signal))
 function _hostwait(signal, sentinel; maxlat=0.01)
     @debug "Waiting on hostcall signal for sentinel: $sentinel"
     while true

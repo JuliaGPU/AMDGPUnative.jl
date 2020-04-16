@@ -1,6 +1,4 @@
 # Indexing and dimensions
-# import HSARuntime: HSA.KernelDispatchPacket
-
 export workitemIdx, workgroupIdx, workitemDim, workgroupDim
 export threadIdx, blockIdx, blockDim, gridDim
 
