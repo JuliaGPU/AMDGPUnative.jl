@@ -58,6 +58,12 @@ a_d = HSAArray(a)
 b_d = HSAArray(b)
 ```
 
+We need to create one additional array `c_d` to store the results:
+
+```julia
+c_d = similar(a_d)
+```
+
 !!! note
     `HSAArray` is a lightweight low-level array type, that does not support the GPUArrays.jl interface.
     Production code should instead use `ROCArray` once its ready, in a similar fashion to `CuArray`.
@@ -86,7 +92,8 @@ The easiest way to launch a GPU kernel is with the [`@roc`](@ref) macro, specify
 @roc threads=N vadd!(c_d, a_d, b_d)
 ```
 
-Keep in mind that kernel launches are asynchronous, meaning that you need to do some kind of synchronization before you use the result by, for instance, `wait()`ing on the returned HSA signal value:
+Keep in mind that kernel launches are asynchronous, meaning that you need to do some kind of synchronization before you use the result (this is not necessary in the REPL).
+For instance, you can call `wait()` on the returned HSA signal value:
 
 ```julia
 wait(@roc threads=N vadd!(c_d, a_d, b_d))
