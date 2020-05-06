@@ -109,14 +109,68 @@ for (dim,off) in ((:x,1), (:y,2), (:z,3))
     @eval @inline $cufn() = $fn()
 end
 
+"""
+    workitemIdx()::ROCDim3
+
+Returns the work item index within the work group.
+See also: [`threadIdx`](@ref)
+"""
 @inline workitemIdx() = (x=workitemIdx_x(), y=workitemIdx_y(), z=workitemIdx_z())
+
+"""
+    workgroupIdx()::ROCDim3
+
+Returns the work group index.
+See also: [`blockIdx`](@ref)
+"""
 @inline workgroupIdx() = (x=workgroupIdx_x(), y=workgroupIdx_y(), z=workgroupIdx_z())
+
+"""
+    workitemDim()::ROCDim3
+
+Returns the number of work items in each dimension in each work group.
+See also: [`blockDim`](@ref)
+"""
 @inline workitemDim() = (x=workitemDim_x(), y=workitemDim_y(), z=workitemDim_z())
+
+"""
+    workgroupDim()::ROCDim3
+
+Returns the number of work groups launched in each dimension.
+See also: [`gridDim`](@ref)
+"""
 @inline workgroupDim() = (x=workgroupDim_x(), y=workgroupDim_y(), z=workgroupDim_z())
 
 # For compat with CUDAnative et. al
 
+"""
+    threadIdx()::ROCDim3
+
+Returns the thread index within the block.
+See also: [`workitemIdx`](@ref)
+"""
 @inline threadIdx() = (x=workitemIdx_x(), y=workitemIdx_y(), z=workitemIdx_z())
+
+"""
+    blockIdx()::ROCDim3
+
+Returns the block index within the grid.
+See also: [`workgroupIdx`](@ref)
+"""
 @inline blockIdx() = (x=workgroupIdx_x(), y=workgroupIdx_y(), z=workgroupIdx_z())
+
+"""
+    blockDim()::ROCDim3
+
+Returns the dimensions of the block.
+See also: [`workitemDim`](@ref)
+"""
 @inline blockDim() = (x=workitemDim_x(), y=workitemDim_y(), z=workitemDim_z())
+
+"""
+    gridDim()::ROCDim3
+
+Returns the dimensions of the grid.
+See also: [`workgroupDim`](@ref)
+"""
 @inline gridDim() = (x=workgroupDim_x(), y=workgroupDim_y(), z=workgroupDim_z())

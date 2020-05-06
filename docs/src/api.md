@@ -10,6 +10,27 @@ AMDGPUnative.rocfunction
 
 ## Device code API
 
+### Thread indexing
+
+#### CUDA terms
+
+Use these functions for compatibility with CUDAnative.jl.
+
+```@docs
+threadIdx
+blockIdx
+blockDim
+gridDim
+```
+
+#### OpenCL terms
+```@docs
+workitemIdx
+workgroupIdx
+workitemDim
+workgroupDim
+```
+
 ```@docs
 AMDGPUnative.dynamic_rocfunction
 ```
