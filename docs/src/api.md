@@ -31,6 +31,12 @@ workitemDim
 workgroupDim
 ```
 
+### Synchronization
+
+```@docs
+sync_workgroup
+```
+
 ```@docs
 AMDGPUnative.dynamic_rocfunction
 ```
