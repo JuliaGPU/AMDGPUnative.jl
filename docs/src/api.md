@@ -12,7 +12,17 @@ AMDGPUnative.rocfunction
 
 ### Thread indexing
 
-#### CUDA terms
+#### HSA nomenclature
+
+```@docs
+workitemIdx
+workgroupIdx
+workgroupDim
+gridDim
+gridDimWG
+```
+
+#### CUDA nomenclature
 
 Use these functions for compatibility with CUDAnative.jl.
 
@@ -20,15 +30,6 @@ Use these functions for compatibility with CUDAnative.jl.
 threadIdx
 blockIdx
 blockDim
-gridDim
-```
-
-#### OpenCL terms
-```@docs
-workitemIdx
-workgroupIdx
-workitemDim
-workgroupDim
 ```
 
 ### Synchronization
@@ -37,8 +38,9 @@ workgroupDim
 sync_workgroup
 ```
 
+### Other
+
 ```@docs
 AMDGPUnative.dynamic_rocfunction
 ```
-
 
