@@ -176,4 +176,3 @@ Returns the dimensions of the block.
 See also: [`workgroupDim`](@ref)
 """
 @inline blockDim() = (x=blockDim_x(), y=blockDim_y(), z=blockDim_z())
-
