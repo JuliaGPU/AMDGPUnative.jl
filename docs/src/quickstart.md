@@ -115,7 +115,7 @@ wait(@roc groupsize=N vadd!(c_d, a_d, b_d))
     | [`gridDim`](@ref) | No equivalent |
     | [`gridDimWG`](@ref) | `gridDim` |
     | `groupsize` | `threads` |
-    | `gridsize` | `blocks` |
+    | `gridsize` | `blocks * threads` |
     | `queue` | `stream` |
 
     For compatibilty reasons, the symbols in the CUDAnative column (except for `gridDim`) are also supported by AMDGPUnative.
