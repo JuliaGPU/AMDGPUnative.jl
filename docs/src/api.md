@@ -38,9 +38,3 @@ blockDim
 sync_workgroup
 ```
 
-### Other
-
-```@docs
-AMDGPUnative.dynamic_rocfunction
-```
-

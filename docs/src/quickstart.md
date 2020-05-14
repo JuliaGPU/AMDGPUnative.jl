@@ -8,7 +8,7 @@ After making sure that your ROCm stack is installed and working, simply add the 
 ]add HSARuntime, AMDGPUnative
 ```
 
-If everything ran successfully, you can try loading the package and running the unit tests:
+If everything ran successfully, you can try loading the `AMDGPUnative` package and running the unit tests:
 
 ```julia
 using AMDGPUnative
@@ -68,36 +68,57 @@ c_d = similar(a_d)
     `HSAArray` is a lightweight low-level array type, that does not support the GPUArrays.jl interface.
     Production code should instead use `ROCArray` once its ready, in a similar fashion to `CuArray`.
 
-It is common to add the postfix `_d` (or the prefix `d_`) to distinguish device memory objects from their host memory counterparts.
+In this example, the postfix `_d` distinguishes a device memory object from its host memory counterpart.
+This convention is completely arbitrary and you may name your device-side variables whatever you like; they are regular Julia variables.
 
 Next, we will define the GPU kernel that does the actual computation:
 
 ```julia
 function vadd!(c, a, b)
-    i = threadIdx().x
+    i = workitemIdx().x
     c[i] = a[i] + b[i]
     return
 end
 ```
 
-This simple kernel starts by getting the current thread ID using [`threadIdx`](@ref) and then performs the addition of the elements from `a` and `b`, storing the result in `c`.
+This simple kernel starts by getting the current thread ID using [`workitemIdx`](@ref) and then performs the addition of the elements from `a` and `b`, storing the result in `c`.
 
 Notice how we explicitly specify that this function does not return a value by adding the `return` statement.
 This is necessary for all GPU kernels and we can enforce it by adding a `return`, `return nothing`, or even `nothing` at the end of the kernel.
-If this statement is omitted Julia will return the value of the last evaluated expression, in this case a `Float64`.
+If this statement is omitted, Julia will attempt to return the value of the last evaluated expression, in this case a `Float64`, which will cause a compilation failure as kernels cannot return values.
 
-The easiest way to launch a GPU kernel is with the [`@roc`](@ref) macro, specifying that we want `N` threads and calling it like an ordinary function:
+The easiest way to launch a GPU kernel is with the [`@roc`](@ref) macro, specifying that we want a single work group with `N` work items and calling it like an ordinary function:
 
 ```julia
-@roc threads=N vadd!(c_d, a_d, b_d)
+@roc groupsize=N vadd!(c_d, a_d, b_d)
 ```
 
-Keep in mind that kernel launches are asynchronous, meaning that you need to do some kind of synchronization before you use the result (this is not necessary in the REPL).
+Keep in mind that kernel launches are asynchronous, meaning that you need to do some kind of synchronization before you use the result.
 For instance, you can call `wait()` on the returned HSA signal value:
 
 ```julia
-wait(@roc threads=N vadd!(c_d, a_d, b_d))
+wait(@roc groupsize=N vadd!(c_d, a_d, b_d))
 ```
+
+!!! warning "Naming conventions"
+    Throughout this example we use terms like "work group" and "work item".
+    These terms are used by the Khronos consortium and their APIs including OpenCL and Vulkan, as well as the HSA foundation.
+
+    NVIDIA, on the other hand, uses some different terms in their CUDA API, which might be confusing to some users porting their kernels from CUDAnative to AMDGPUnative.
+    As a quick summary, here is a mapping of the most common terms:
+    
+    | AMDGPUnative | CUDAnative |
+    |:---:|:---:|
+    | [`workitemIdx`](@ref) | [`threadIdx`](@ref) |
+    | [`workgroupIdx`](@ref) | [`blockIdx`](@ref) |
+    | [`workgroupDim`](@ref) | [`blockDim`](@ref) |
+    | [`gridDim`](@ref) | No equivalent |
+    | [`gridDimWG`](@ref) | `gridDim` |
+    | `groupsize` | `threads` |
+    | `gridsize` | `blocks` |
+    | `queue` | `stream` |
+
+    For compatibilty reasons, the symbols in the CUDAnative column (except for `gridDim`) are also supported by AMDGPUnative.
 
 Finally, we can make sure that the results match, by first copying the data to the host and then comparing it with the CPU results:
 

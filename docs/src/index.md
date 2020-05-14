@@ -12,7 +12,11 @@ ROCm works solely on Linux and no plans to support either Windows or macOS have 
 A necessary prerequisite to use this Julia package is to have a working ROCm stack installed.
 A quick way to verify this is to check the output of `rocminfo`.
 For more information, consult the official [installation guide](https://rocmdocs.amd.com/en/latest/Installation_Guide/Installation-Guide.html).
-If you use Arch btw, you may want to check out the PKGBUILD scripts at [rocm-arch](https://github.com/rocm-arch/rocm-arch) or their slightly older counterparts in the AUR.
+Even though the only platforms officially supported by AMD are certain versions of Ubuntu, CentOS, RHEL, and SLES [^1], there are options to install ROCm on other Linux distributions, including:
+ * Arch Linux - See the [rocm-arch](https://github.com/rocm-arch/rocm-arch) repository or the slightly older PKGBUILDs in the AUR.
+ * Gentoo - Check Portage for the `rocr-runtime` package and [justxi's rocm repo](https://github.com/justxi/rocm) for unofficial ROCm package ebuilds.
+
+[^1]: <https://github.com/RadeonOpenCompute/ROCm/wiki#supported-operating-systems>
 
 Even though you don't need HIP to use Julia on AMDGPU, it might be wise to make sure that you can build and run simple HIP programs to ensure that your ROCm installation works properly before trying to use it from Julia.
 
