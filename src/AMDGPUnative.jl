@@ -39,7 +39,12 @@ include("execution.jl")
 include("reflection.jl")
 
 function __init__()
-    check_deps()
+    try
+        # Try to load deps if possible
+        check_deps()
+    catch err
+        @error exception=(err,catch_backtrace)
+    end
     @require OpenCL="08131aa3-fb12-5dee-8b74-c09406e224a2" include("opencl.jl")
 end
 
