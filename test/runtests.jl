@@ -30,12 +30,7 @@ if AMDGPUnative.configured
             include("device/hostcall.jl")
             include("device/output.jl")
             include("device/globals.jl")
-            if Base.libllvm_version >= v"7.0"
-                include("device/math.jl")
-            else
-                @warn "Testing with LLVM 6; some tests will be disabled!"
-                @test_skip "Math Intrinsics"
-            end
+            include("device/math.jl")
         end
     end
 else

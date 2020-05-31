@@ -33,7 +33,7 @@ end
 @generated function _dim(::Val{base}, ::Val{off}, ::Val{range}, ::Type{T}) where {base, off, range, T}
     T_int8 = LLVM.Int8Type(JuliaContext())
     T_int32 = LLVM.Int32Type(JuliaContext())
-    _as = Base.libllvm_version < v"7.0" ? 2 : 4
+    _as = convert(Int, AS.Constant)
     T_ptr_i8 = LLVM.PointerType(T_int8, _as)
     T_ptr_i32 = LLVM.PointerType(T_int32, _as)
     T_ptr_T = LLVM.PointerType(convert(LLVMType, T), _as)
