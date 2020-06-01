@@ -346,6 +346,15 @@ function _rocfunction(source::FunctionSpec; device=default_device(), queue=defau
     fun = ROCFunction(mod, kernel_fn)
     kernel = HostKernel{source.f,source.tt}(mod, fun)
 
+    # initialize global output context
+    global_oc = findfirst(x->x[1]==:__global_output_context, globals)
+    if global_oc !== nothing
+        gbl = HSARuntime.get_global(exe, :__global_output_context)
+        gbl_ptr = Base.unsafe_convert(Ptr{GLOBAL_OUTPUT_CONTEXT_TYPE}, gbl)
+        oc = OutputContext(stdout)
+        Base.unsafe_store!(gbl_ptr, oc)
+    end
+
     #create_exceptions!(mod)
 
     return kernel

@@ -11,6 +11,8 @@ agent_name = HSARuntime.get_name(get_default_agent())
 agent_isa = get_first_isa(get_default_agent())
 @info "Testing using device $agent_name with ISA $agent_isa"
 
+include("util.jl")
+
 @testset "AMDGPUnative" begin
 
 @testset "Core" begin

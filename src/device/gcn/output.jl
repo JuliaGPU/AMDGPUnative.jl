@@ -24,6 +24,8 @@ function OutputContext(io::IO=stdout; agent=get_default_agent(), buf_len=2^16, k
     OutputContext(hc)
 end
 
+const GLOBAL_OUTPUT_CONTEXT_TYPE = OutputContext{HostCall{UInt64,Int64,Tuple{DeviceStaticString{2^16}}}}
+
 ### macros
 
 macro rocprint(oc, str)
@@ -33,9 +35,30 @@ macro rocprintln(oc, str)
     rocprint(oc, str, true)
 end
 
+macro rocprint(str)
+    @gensym oc_ptr oc
+    ex = quote
+        $(esc(oc_ptr)) = AMDGPUnative.get_global_pointer(Val(:__global_output_context),
+                                                         $GLOBAL_OUTPUT_CONTEXT_TYPE)
+        $(esc(oc)) = Base.unsafe_load($(esc(oc_ptr)))
+    end
+    push!(ex.args, rocprint(oc, str))
+    ex
+end
+macro rocprintln(str)
+    @gensym oc_ptr oc
+    ex = quote
+        $(esc(oc_ptr)) = AMDGPUnative.get_global_pointer(Val(:__global_output_context),
+                                                         $GLOBAL_OUTPUT_CONTEXT_TYPE)
+        $(esc(oc)) = Base.unsafe_load($(esc(oc_ptr)))
+    end
+    push!(ex.args, rocprint(oc, str, true))
+    ex
+end
+
 ### parse-time helpers
 
-function rocprint(oc, str, nl=false)
+function rocprint(oc, str, nl::Bool=false)
     ex = Expr(:block)
     if !(str isa Expr)
         str = Expr(:string, str)
@@ -50,6 +73,7 @@ function rocprint(oc, str, nl=false)
         dstr = DeviceStaticString{N}()
         push!(ex.args, :(hostcall!($(esc(oc)).hostcall, $dstr)))
     end
+    push!(ex.args, :(nothing))
     return ex
 end
 function rocprint!(ex, N, oc, str::String)
