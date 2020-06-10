@@ -91,8 +91,6 @@ for dim in (:x, :y, :z)
     cufn = Symbol("blockIdx_$dim")
     @eval @inline $cufn() = $fn()
 end
-_packet_names = fieldnames(HSA.KernelDispatchPacket)
-_packet_offsets = fieldoffset.(HSA.KernelDispatchPacket, 1:length(_packet_names))
 for (dim,off) in ((:x,1), (:y,2), (:z,3))
     # Workitem dimension
     fn = Symbol("workgroupDim_$dim")

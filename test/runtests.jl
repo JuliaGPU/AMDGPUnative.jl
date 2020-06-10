@@ -33,6 +33,7 @@ if AMDGPUnative.configured
             include("device/output.jl")
             include("device/globals.jl")
             include("device/math.jl")
+            include("device/exceptions.jl")
         end
     end
 else

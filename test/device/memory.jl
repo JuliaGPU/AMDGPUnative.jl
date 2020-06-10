@@ -1,6 +1,7 @@
 @testset "Memory: Static" begin
 
 function memory_static_kernel(a,b)
+    @rocprintln("Salloc!")
     # Local
     ptr_local = alloc_special(Val(:local), Float32, Val(AS.Local), Val(1))
     unsafe_store!(ptr_local, a[1])
@@ -32,5 +33,24 @@ HB = HSAArray(B)
 wait(@roc memory_static_kernel(HA, HB))
 
 @test Array(HA) ≈ Array(HB)
+
+end
+
+@testset "Memory: Dynamic" begin
+
+function malloc_kernel(X)
+    @rocprintln("Malloc!")
+    ptr = AMDGPUnative.malloc(4)
+    if UInt64(ptr) != 0
+        X[1] = ptr
+    end
+    nothing
+end
+
+HA = HSAArray(zeros(UInt64, 1))
+
+wait(@roc malloc_kernel(HA))
+
+@test Array(HA)[1] != 0
 
 end

@@ -49,11 +49,11 @@ uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GPUCompiler]]
 deps = ["DataStructures", "InteractiveUtils", "LLVM", "Libdl", "TimerOutputs", "UUIDs"]
-git-tree-sha1 = "3f405c2aab2ef755d022bd57466a35c6d08a1531"
-repo-rev = "158cd601fc42faed088785a7bde16436cbaa6017"
+git-tree-sha1 = "65f7395a1245635f0c2279649fdbef09a1b0aa7b"
+repo-rev = "master"
 repo-url = "https://github.com/JuliaGPU/GPUCompiler.jl.git"
 uuid = "61eb1bfa-7361-4325-ad38-22787b887f55"
-version = "0.3.0"
+version = "0.4.0"
 
 [[HSARuntime]]
 deps = ["CEnum", "Libdl", "Setfield"]

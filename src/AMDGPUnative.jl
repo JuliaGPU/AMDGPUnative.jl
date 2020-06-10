@@ -37,6 +37,7 @@ include(joinpath("device", "globals.jl"))
 include("compiler.jl")
 include("execution_utils.jl")
 include("execution.jl")
+include("exceptions.jl")
 include("reflection.jl")
 
 function __init__()

@@ -15,48 +15,55 @@ function load_runtime(dev_isa::String)
     GPUCompiler.load_runtime(job)
 end
 
-#@inline exception_flag() = ccall("extern julia_exception_flag", llvmcall, Ptr{Cvoid}, ())
-
 function signal_exception()
-#=
-    ptr = exception_flag()
-    if ptr !== C_NULL
-        unsafe_store!(convert(Ptr{Int}, ptr), 1)
-        threadfence_system()
-    else
-        @rocprintf("""
-            WARNING: could not signal exception status to the host, execution will continue.
-                     Please file a bug.
-            """)
-    end
-=#
+    flag_ptr = get_global_pointer(Val(:__global_exception_flag), Int64)
+    Base.unsafe_store!(flag_ptr, 1)
+    # TODO: threadfence_system()
+    signal_completion(0)
+    sendmsghalt(5) # stop wavefront generation
+    sendmsghalt(6) # halt all running wavefronts
+    # TODO: endpgm()
     return
 end
 
 function report_exception(ex)
-#=
+    #= FIXME
     @rocprintf("""
         ERROR: a %s was thrown during kernel execution.
                Run Julia on debug level 2 for device stack traces.
         """, ex)
-=#
+    =#
+    # TODO: Pass exception info and kernel ID to a global
+    @rocprint("""
+        ERROR: an exception was thrown during kernel execution.
+               Run Julia on debug level 2 for device stack traces.
+        """)
+    ring_ptr = get_global_pointer(Val(:__global_exception_ring), ExceptionEntry)
+    ee = ExceptionEntry(_completion_signal(), C_NULL) # FIXME: DevicePtr(pointer(ex)))
+    Base.unsafe_store!(ring_ptr, ee)
     return
 end
 
-report_oom(sz) = nothing #@rocprintf("ERROR: Out of dynamic GPU memory (trying to allocate %i bytes)\n", sz)
+# FIXME: report_oom(sz) = @rocprintf("ERROR: Out of dynamic GPU memory (trying to allocate %i bytes)\n", sz)
+report_oom(sz) = @rocprintln("ERROR: Out of dynamic GPU memory")
 
 function report_exception_name(ex)
-#=
+    #= FIXME
     @rocprintf("""
         ERROR: a %s was thrown during kernel execution.
         Stacktrace:
         """, ex)
-=#
+    =#
+    @rocprint("""
+        ERROR: an exception was thrown during kernel execution.
+        Stacktrace:
+        """)
     return
 end
 
 function report_exception_frame(idx, func, file, line)
-    #@rocprintf(" [%i] %s at %s:%i\n", idx, func, file, line)
+    # FIXME: @rocprintf(" [%i] %s at %s:%i\n", idx, func, file, line)
+    @rocprintln(" [%i] %s at %s:%i")
     return
 end
 
@@ -99,6 +106,7 @@ end
 function link_device_libs!(mod::LLVM.Module, dev_isa::String, undefined_fns)
     libs::Vector{LLVM.Module} = load_device_libs(dev_isa)
 
+    ufns = undefined_fns
     # TODO: only link if used
     # TODO: make these globally/locally configurable
     link_oclc_defaults!(mod, dev_isa)

@@ -3,10 +3,19 @@
 
 export ROCDim, ROCModule, ROCFunction, roccall
 
+struct KernelMetadata
+    kern::UInt64
+    data::DevicePtr{UInt8,AS.Global}
+    size::Csize_t
+end
+KernelMetadata(kern) = KernelMetadata(kern, DevicePtr{UInt8,AS.Global}(0), 0)
 mutable struct ROCModule{E}
     exe::RuntimeExecutable{E}
     options::Dict{Any,Any}
+    metadata::Vector{KernelMetadata}
 end
+ROCModule(exe, options) =
+    ROCModule(exe, options, Vector{KernelMetadata}(undef,256))
 mutable struct ROCFunction
     mod::ROCModule
     entry::String
