@@ -37,8 +37,8 @@ uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[GPUCompiler]]
 deps = ["DataStructures", "InteractiveUtils", "LLVM", "Libdl", "TimerOutputs", "UUIDs"]
-git-tree-sha1 = "65f7395a1245635f0c2279649fdbef09a1b0aa7b"
-repo-rev = "master"
+git-tree-sha1 = "95aa07bfda5c80ccd57b038570ef79f663ce531f"
+repo-rev = "jps/gcn-workaround-allocas"
 repo-url = "https://github.com/JuliaGPU/GPUCompiler.jl.git"
 uuid = "61eb1bfa-7361-4325-ad38-22787b887f55"
 version = "0.4.0"

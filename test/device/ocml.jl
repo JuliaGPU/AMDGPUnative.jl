@@ -1,5 +1,5 @@
-@testset "Math Intrinsics" begin
-    for intr in AMDGPUnative.MATH_INTRINSICS
+@testset "OCML Intrinsics" begin
+    for intr in AMDGPUnative.OCML_INTRINSICS
         jlintr = intr.jlname
         if intr.isbroken || !(isdefined(Base, jlintr) || isdefined(SpecialFunctions, jlintr))
             @test_skip "$jlintr()"
