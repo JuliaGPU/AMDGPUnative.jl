@@ -21,25 +21,14 @@ ExceptionEntry() = ExceptionEntry(0, DevicePtr{Any,AS.Global}(0))
 ## exception codegen
 
 # emit a global variable for storing the current exception status
-function emit_exception_flag!(mod::LLVM.Module)
-    # add the global variable
-    gbl_name = "__global_exception_flag"
-    if !haskey(LLVM.globals(mod), gbl_name)
-        T_ptr = convert(LLVMType, Ptr{Int64})
-        gv = GlobalVariable(mod, T_ptr, gbl_name)
-        #initializer!(gv, LLVM.ConstantInt(T_ptr, 0))
-        linkage!(gv, LLVM.API.LLVMExternalLinkage)
-        extinit!(gv, true)
-        set_used!(mod, gv)
-    end
-
-    # add a fake user for __ockl_hsa_signal_store
+function emit_exception_user!(mod::LLVM.Module)
+    # add a fake user for __ockl_hsa_signal_store and __ockl_hsa_signal_load
     if !haskey(LLVM.functions(mod), "__fake_global_exception_flag_user")
         ctx = JuliaContext()
         ft = LLVM.FunctionType(LLVM.VoidType(ctx))
         fn = LLVM.Function(mod, "__fake_global_exception_flag_user", ft)
         Builder(ctx) do builder
-            entry = BasicBlock(fn, "entry")
+            entry = BasicBlock(fn, "entry", ctx)
             position!(builder, entry)
             T_nothing = LLVM.VoidType(ctx)
             T_i32 = LLVM.Int32Type(ctx)
@@ -50,7 +39,19 @@ function emit_exception_flag!(mod::LLVM.Module)
                                           ConstantInt(0,ctx),
                                           # __ATOMIC_RELEASE == 3
                                           ConstantInt(Int32(3), JuliaContext())])
+            T_signal_load = LLVM.FunctionType(T_i64, [T_i64, T_i32])
+            signal_load = LLVM.Function(mod, "__ockl_hsa_signal_load", T_signal_load)
+            loaded_value = call!(builder, signal_load, [ConstantInt(0,ctx),
+                                                        # __ATOMIC_ACQUIRE == 2
+                                                        ConstantInt(Int32(2), JuliaContext())])
             ret!(builder)
         end
     end
+    @assert haskey(LLVM.functions(mod), "__fake_global_exception_flag_user")
+end
+function delete_exception_user!(mod::LLVM.Module)
+    if haskey(LLVM.functions(mod), "__fake_global_exception_flag_user")
+        delete!(mod, LLVM.functions(mod)["__fake_global_exception_flag_user"])
+    end
+    @assert !haskey(LLVM.functions(mod), "__fake_global_exception_flag_user")
 end

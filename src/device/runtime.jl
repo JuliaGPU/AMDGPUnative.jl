@@ -33,14 +33,16 @@ function report_exception(ex)
                Run Julia on debug level 2 for device stack traces.
         """, ex)
     =#
-    # TODO: Pass exception info and kernel ID to a global
     @rocprint("""
         ERROR: an exception was thrown during kernel execution.
                Run Julia on debug level 2 for device stack traces.
         """)
+    # TODO: Pass exception info and kernel ID to a global
+    #=
     ring_ptr = get_global_pointer(Val(:__global_exception_ring), ExceptionEntry)
     ee = ExceptionEntry(_completion_signal(), C_NULL) # FIXME: DevicePtr(pointer(ex)))
     Base.unsafe_store!(ring_ptr, ee)
+    =#
     return
 end
 
@@ -63,7 +65,7 @@ end
 
 function report_exception_frame(idx, func, file, line)
     # FIXME: @rocprintf(" [%i] %s at %s:%i\n", idx, func, file, line)
-    @rocprintln(" [%i] %s at %s:%i")
+    #@rocprintln(" [%i] %s at %s:%i")
     return
 end
 
