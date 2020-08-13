@@ -47,7 +47,7 @@ version = "0.4.0"
 deps = ["CEnum", "Libdl", "Setfield"]
 git-tree-sha1 = "c6dc952113c56838089473d121041e12f54a48f7"
 repo-rev = "master"
-repo-url = "https://github.com/jpsamaroo/HSARuntime.jl.git"
+repo-url = "https://github.com/JuliaGPU/HSARuntime.jl.git"
 uuid = "2c364e2c-59fb-59c3-96f3-194112e690e0"
 version = "0.3.0"
 

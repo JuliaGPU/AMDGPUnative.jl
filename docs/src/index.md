@@ -24,7 +24,7 @@ Even though you don't need HIP to use Julia on AMDGPU, it might be wise to make 
 
 Julia support for programming AMD GPUs is currently provided by the following three packages:
 
-* [HSARuntime.jl](https://github.com/jpsamaroo/HSARuntime.jl) - Provides an interface for working with the HSA runtime API, necessary for launching compiled kernels and controlling the GPU.
+* [HSARuntime.jl](https://github.com/JuliaGPU/HSARuntime.jl) - Provides an interface for working with the HSA runtime API, necessary for launching compiled kernels and controlling the GPU.
 * [AMDGPUnative.jl](https://github.com/JuliaGPU/AMDGPUnative.jl) - Provides an interface for compiling and running kernels written in Julia through LLVM's AMDGPU backend. Uses and depends on HSARuntime.jl.
-* [ROCArrays.jl](https://github.com/jpsamaroo/ROCArrays.jl) - Implements the [GPUArrays.jl](https://github.com/JuliaGPU/GPUArrays.jl) interface, providing high-level array operations on top of AMDGPUnative.jl.
+* [ROCArrays.jl](https://github.com/JuliaGPU/ROCArrays.jl) - Implements the [GPUArrays.jl](https://github.com/JuliaGPU/GPUArrays.jl) interface, providing high-level array operations on top of AMDGPUnative.jl.
 
