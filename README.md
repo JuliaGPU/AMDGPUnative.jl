@@ -1,5 +1,7 @@
 # AMDGPUnative.jl
 
+## Deprecated, please use [AMDGPU.jl](https://github.com/JuliaGPU/AMDGPU.jl)
+
 *Support for compiling and executing native Julia kernels on AMD GPUs.*
 
 | **Documentation**                                                       | **Build Status**                                              |
