@@ -18,9 +18,38 @@ default_isa(device::RuntimeDevice{HSAAgent}) =
 struct RuntimeEvent{E}
     event::E
 end
-create_event() = RuntimeEvent(create_event(RUNTIME[]))
-create_event(::typeof(HSA_rt)) = HSASignal()
-Base.wait(event::RuntimeEvent; kwargs...) = wait(event.event; kwargs...)
+create_event(exe) = RuntimeEvent(create_event(RUNTIME[], exe))
+Base.wait(event::RuntimeEvent, exe) = wait(event.event, exe)
+
+"Tracks the completion and status of a kernel's execution."
+struct HSAStatusSignal
+    signal::HSASignal
+    exe::HSAExecutable
+end
+create_event(::typeof(HSA_rt), exe) = HSAStatusSignal(HSASignal(), exe.exe)
+function Base.wait(event::RuntimeEvent{HSAStatusSignal}; kwargs...)
+    wait(event.event.signal; kwargs...) # wait for completion signal
+    exe = event.event.exe
+    agent = exe.agent
+    if haskey(exe.globals, :__global_exception_flag)
+        ex_flag = HSARuntime.get_global(exe, :__global_exception_flag)
+        ex_flag_ptr = Base.unsafe_convert(Ptr{Int64}, ex_flag)
+        ex_flag_value = Base.unsafe_load(ex_flag_ptr)
+        if ex_flag_value != 0
+            if haskey(exe.globals, :__global_exception_ring)
+                ex_ring = HSARuntime.get_global(exe, :__global_exception_ring)
+                ex_ring_ptr = Base.unsafe_convert(Ptr{ExceptionEntry}, ex_ring)
+                ex_ring_value = Base.unsafe_load(ex_ring_ptr)
+                # FIXME: Check for and collect any exceptions, and clear their slots
+                # FIXME: Throw appropriate error
+                throw(KernelException(RuntimeDevice(agent)))
+            else
+                throw(KernelException(RuntimeDevice(agent)))
+            end
+        end
+    end
+end
+
 
 struct RuntimeExecutable{E}
     exe::E
@@ -55,7 +84,9 @@ create_kernel(::typeof(HSA_rt), device, exe, entry, args) =
     HSAKernelInstance(device.device, exe.exe, entry, args)
 launch_kernel(queue, kern, event; kwargs...) =
     launch_kernel(RUNTIME[], queue, kern, event; kwargs...)
-launch_kernel(::typeof(HSA_rt), queue, kern, event;
-              groupsize=nothing, gridsize=nothing) =
-    HSARuntime.launch!(queue.queue, kern.kernel, event.event;
+function launch_kernel(::typeof(HSA_rt), queue, kern, event;
+                       groupsize=nothing, gridsize=nothing)
+    signal = event.event isa HSAStatusSignal ? event.event.signal : event.event
+    HSARuntime.launch!(queue.queue, kern.kernel, signal;
                        workgroup_size=groupsize, grid_size=gridsize)
+end

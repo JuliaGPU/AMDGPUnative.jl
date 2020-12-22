@@ -183,7 +183,7 @@ macro roc(ex...)
                     #local $device = $extract_device(; $(call_kwargs...))
                     local $kernel = $rocfunction($f, $kernel_tt; $(compiler_kwargs...))
                     #local $queue = $extract_queue($device; $(call_kwargs...))
-                    local $signal = $create_event()
+                    local $signal = $create_event($kernel.mod.exe)
                     $kernel($kernel_args...; signal=$signal, $(call_kwargs...))
                     $signal
                 end
@@ -285,9 +285,8 @@ end
 
 @doc (@doc AbstractKernel) HostKernel
 
-@inline function roccall(kernel::HostKernel, tt, args...; config=nothing, kwargs...)
+@inline function roccall(kernel::HostKernel, tt, args...; config=nothing, signal, kwargs...)
     queue = get(kwargs, :queue, default_queue(default_device()))
-    signal = get(kwargs, :signal, create_event())
     if config !== nothing
         roccall(kernel.fun, tt, args...; kwargs..., config(kernel)..., queue=queue, signal=signal)
     else
@@ -346,7 +345,67 @@ function _rocfunction(source::FunctionSpec; device=default_device(), queue=defau
     fun = ROCFunction(mod, kernel_fn)
     kernel = HostKernel{source.f,source.tt}(mod, fun)
 
-    #create_exceptions!(mod)
+    # initialize global output context
+    if any(x->x[1]==:__global_output_context, globals)
+        gbl = HSARuntime.get_global(exe, :__global_output_context)
+        gbl_ptr = Base.unsafe_convert(Ptr{GLOBAL_OUTPUT_CONTEXT_TYPE}, gbl)
+        oc = OutputContext(stdout)
+        Base.unsafe_store!(gbl_ptr, oc)
+    end
+
+    # initialize global exception flag
+    if any(x->x[1]==:__global_exception_flag, globals)
+        gbl = HSARuntime.get_global(exe, :__global_exception_flag)
+        gbl_ptr = Base.unsafe_convert(Ptr{Int64}, gbl)
+        Base.unsafe_store!(gbl_ptr, 0)
+
+        # TODO: initialize exception ring buffer
+        #=
+        @assert any(x->x[1]==:__global_exception_ring, globals)
+        gbl = HSARuntime.get_global(exe, :__global_exception_ring)
+        gbl_ptr = Base.unsafe_convert(Ptr{ExceptionEntry}, gbl)
+        erb = ExceptionEntry()
+        Base.unsafe_store!(gbl_ptr, erb)
+        =#
+    end
+
+    # initialize global metadata store pointer
+    if any(x->x[1]==:__global_metadata_store, globals)
+        gbl = HSARuntime.get_global(exe, :__global_metadata_store)
+        gbl_ptr = Base.unsafe_convert(Ptr{Ptr{KernelMetadata}}, gbl)
+        # setup initial slots
+        for idx in 1:length(mod.metadata)-1
+            mod.metadata[idx] = KernelMetadata(0)
+        end
+        # setup tail slot
+        mod.metadata[end] = KernelMetadata(1)
+        Base.unsafe_store!(gbl_ptr, pointer(mod.metadata))
+    end
+
+    # initialize malloc hostcall
+    if any(x->x[1]==:__global_malloc_hostcall, globals)
+        gbl = HSARuntime.get_global(exe, :__global_malloc_hostcall)
+        gbl_ptr = Base.unsafe_convert(Ptr{HostCall{UInt64,DevicePtr{UInt8,AS.Global},Tuple{Csize_t}}}, gbl)
+        hc = HostCall(DevicePtr{UInt8,AS.Global}, Tuple{Csize_t}; agent=device.device, continuous=true) do sz
+            @debug "Allocating $sz bytes for kernel on device $device"
+            return DevicePtr{UInt8,AS.Global}(Base.unsafe_convert(Ptr{UInt8},
+                                              Mem.alloc(device.device, sz)))
+        end
+        Base.unsafe_store!(gbl_ptr, hc)
+    end
+
+    # initialize free hostcall
+    if any(x->x[1]==:__global_free_hostcall, globals)
+        gbl = HSARuntime.get_global(exe, :__global_free_hostcall)
+        gbl_ptr = Base.unsafe_convert(Ptr{HostCall{UInt64,Nothing,Tuple{DevicePtr{UInt8,AS.Global}}}}, gbl)
+        hc = HostCall(Nothing, Tuple{DevicePtr{UInt8,AS.Global}}; agent=device.device, continuous=true) do ptr
+            @debug "Freeing $ptr for kernel on device $device"
+            buf = Mem.Buffer(Base.unsafe_convert(Ptr{Cvoid}, convert(Ptr{UInt8}, ptr)), 0, device.device)
+            Mem.free(buf)
+            return nothing
+        end
+        Base.unsafe_store!(gbl_ptr, hc)
+    end
 
     return kernel
 end

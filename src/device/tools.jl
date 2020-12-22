@@ -333,6 +333,6 @@ llvmsize(::LLVM.LLVMHalf) = sizeof(Float16)
 llvmsize(::LLVM.LLVMFloat) = sizeof(Float32)
 llvmsize(::LLVM.LLVMDouble) = sizeof(Float64)
 llvmsize(::LLVM.IntegerType) = div(Int(intwidth(GenericValue(LLVM.Int128Type(), -1))), 8)
-llvmsize(ty::LLVM.ArrayType) = length*llvmsize(eltype(ty))
+llvmsize(ty::LLVM.ArrayType) = length(ty)*llvmsize(eltype(ty))
 # TODO: VectorType, StructType, PointerType
 llvmsize(ty) = error("Unknown size for type: $ty, typeof: $(typeof(ty))")

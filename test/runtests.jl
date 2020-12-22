@@ -11,6 +11,8 @@ agent_name = HSARuntime.get_name(get_default_agent())
 agent_isa = get_first_isa(get_default_agent())
 @info "Testing using device $agent_name with ISA $agent_isa"
 
+include("util.jl")
+
 @testset "AMDGPUnative" begin
 
 @testset "Core" begin
@@ -30,12 +32,9 @@ if AMDGPUnative.configured
             include("device/hostcall.jl")
             include("device/output.jl")
             include("device/globals.jl")
-            if Base.libllvm_version >= v"7.0"
-                include("device/math.jl")
-            else
-                @warn "Testing with LLVM 6; some tests will be disabled!"
-                @test_skip "Math Intrinsics"
-            end
+            include("device/math.jl")
+            include("device/exceptions.jl")
+            include("device/execution_control.jl")
         end
     end
 else

@@ -34,3 +34,49 @@ wait(@roc memory_static_kernel(HA, HB))
 @test Array(HA) ≈ Array(HB)
 
 end
+
+@testset "Memory: Dynamic" begin
+
+function malloc_kernel(X)
+    ptr = AMDGPUnative.malloc(Csize_t(4))
+    X[1] = ptr
+    AMDGPUnative.free(ptr)
+    nothing
+end
+
+HA = HSAArray(zeros(UInt64, 1))
+
+wait(@roc malloc_kernel(HA))
+
+@test Array(HA)[1] != 0
+
+end
+
+@testset "Memcpy/Memset" begin
+
+function memcpy_kernel(X,Y)
+    AMDGPUnative.memcpy!(Y.ptr, X.ptr, sizeof(Float32)*length(X))
+    nothing
+end
+
+A = rand(Float32, 4)
+B = zeros(Float32, 4)
+HA, HB = HSAArray.((A,B))
+
+wait(@roc memcpy_kernel(A,B))
+
+@test A == collect(HA) == collect(HB)
+
+function memset_kernel(X,y)
+    AMDGPUnative.memset!(X.ptr, y, div(length(X),2))
+    nothing
+end
+
+A = zeros(UInt8, 4)
+HA = HSAArray(A)
+
+wait(@roc memset_kernel(X,0x3))
+
+@test all(collect(HA) .== 0x3)
+
+end
