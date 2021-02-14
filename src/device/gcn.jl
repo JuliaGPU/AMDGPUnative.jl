@@ -1,5 +1,7 @@
+include(joinpath("gcn", "intrinsics.jl"))
 if Base.libllvm_version >= v"7.0"
-    include(joinpath("gcn", "math.jl"))
+    include(joinpath("gcn", "ocml.jl"))
+    include(joinpath("gcn", "ockl.jl"))
 end
 include(joinpath("gcn", "indexing.jl"))
 include(joinpath("gcn", "assertion.jl"))

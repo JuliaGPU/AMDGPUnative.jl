@@ -7,6 +7,8 @@ const llvmtypes = Dict{Type,Symbol}(
     Int16   => :i16,
     Int32   => :i32,
     Int64   => :i64,
+    UInt32  => :i32,
+    UInt64  => :i64,
     Float32 => :float,
     Float64 => :double,
 )
@@ -29,6 +31,8 @@ const fntypes = Dict{Type,Symbol}(
     Int16   => :i16,
     Int32   => :i32,
     Int64   => :i64,
+    UInt32  => :u32,
+    UInt64  => :u64,
     Float16 => :f16,
     Float32 => :f32,
     Float64 => :f64
